@@ -435,6 +435,14 @@ button{
 
 .event.locked{cursor:default}
 
+.event.dragging{
+  opacity:.4;
+}
+
+.event.over{
+  outline:2px dashed #111;
+}
+
 .empty-text{
   font-size:16px;
   color:#777;
@@ -771,14 +779,6 @@ input:focus{
     font-size:28px;
   }
 }
-
-.event.dragging{
-  opacity:.4;
-}
-
-.event.over{
-  outline:2px dashed #111;
-}
 </style>
 </head>
 
@@ -960,12 +960,35 @@ input:focus{
   </div>
 </div>
 
-<script>
-let dragOverId = null;
-const PASSWORD = "oozyeastside!";
-const STORE_KEY = "oozy_events_final_clean_v1";
-const STAFF_KEY = "oozy_staff_final_clean_v1";
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  onSnapshot,
+  doc,
+  updateDoc,
+  deleteDoc,
+  getDocs,
+  writeBatch,
+  query,
+  orderBy
+} from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
 
+const firebaseConfig = {
+  apiKey: "AIzaSyA86bpFVtZBDqpPRLtbj7qc6CzRrhGPb1Y",
+  authDomain: "oozyeastside.firebaseapp.com",
+  projectId: "oozyeastside",
+  storageBucket: "oozyeastside.firebasestorage.app",
+  messagingSenderId: "746290722295",
+  appId: "1:746290722295:web:0ddc16c50f0feeddbaaaf2"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const PASSWORD = "oozyeastside!";
 const monthNames = ["january","february","march","april","may","june","july","august","september","october","november","december"];
 const dayNames = ["일","월","화","수","목","금","토"];
 
@@ -977,23 +1000,21 @@ let editingId = null;
 let editingStaffId = null;
 let activeDateKey = null;
 let draggingId = null;
+let dragOverId = null;
 let altPressed = false;
-let wheelLock = false;
 
-let events = JSON.parse(localStorage.getItem(STORE_KEY) || "[]");
-let staffLabels = JSON.parse(localStorage.getItem(STAFF_KEY) || "[]");
+let events = [];
+let staffLabels = [];
+let eventsLoaded = false;
+let staffLoaded = false;
+let seededStaff = false;
 
-if(!staffLabels.length){
-  staffLabels = [
-    {id:"s1", name:"김규랑", start:"09:00", end:"17:00", color:"#111111"},
-    {id:"s2", name:"전지윤", start:"13:00", end:"18:00", color:"#666666"}
-  ];
-  saveStaff();
+const eventsRef = collection(db, "events");
+const staffRef = collection(db, "staffLabels");
+
+function uid(){
+  return Date.now().toString(36)+Math.random().toString(36).slice(2);
 }
-
-function saveStore(){localStorage.setItem(STORE_KEY,JSON.stringify(events))}
-function saveStaff(){localStorage.setItem(STAFF_KEY,JSON.stringify(staffLabels))}
-function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2)}
 
 function keyOf(date){
   const y=date.getFullYear();
@@ -1007,7 +1028,58 @@ function moveMonth(amount){
   render();
 }
 
+function sortEvents(list){
+  return [...list].sort((a,b)=>{
+    if(a.date !== b.date) return a.date.localeCompare(b.date);
+    return (a.order ?? 0) - (b.order ?? 0);
+  });
+}
+
+async function seedDefaultStaffIfNeeded(){
+  if(seededStaff || staffLabels.length) return;
+  seededStaff = true;
+
+  const snap = await getDocs(staffRef);
+  if(!snap.empty) return;
+
+  await addDoc(staffRef, {
+    name:"김규랑",
+    start:"09:00",
+    end:"17:00",
+    color:"#111111",
+    order:Date.now()
+  });
+
+  await addDoc(staffRef, {
+    name:"전지윤",
+    start:"13:00",
+    end:"18:00",
+    color:"#666666",
+    order:Date.now()+1
+  });
+}
+
+onSnapshot(query(eventsRef, orderBy("date"), orderBy("order")), snapshot=>{
+  events = snapshot.docs.map(item=>({
+    id:item.id,
+    ...item.data()
+  }));
+  eventsLoaded = true;
+  render();
+});
+
+onSnapshot(query(staffRef, orderBy("order")), async snapshot=>{
+  staffLabels = snapshot.docs.map(item=>({
+    id:item.id,
+    ...item.data()
+  }));
+  staffLoaded = true;
+  await seedDefaultStaffIfNeeded();
+  render();
+});
+
 function render(){
+  if(!eventsLoaded || !staffLoaded) return;
   document.getElementById("app").classList.toggle("editing", editMode);
   renderStaff();
   renderCalendar();
@@ -1017,6 +1089,7 @@ function render(){
 function renderStaff(){
   const list=document.getElementById("staffList");
   list.innerHTML="";
+
   staffLabels.forEach(staff=>{
     const chip=document.createElement("button");
     chip.className="staff-chip"+(!editMode?" locked":"");
@@ -1028,52 +1101,58 @@ function renderStaff(){
         <span class="icon-btn" data-act="edit">수정</span>
       </span>
     `;
+
     chip.onclick=(e)=>{
       if(!editMode) return;
+
       if(e.target.dataset.act==="edit"){
         openStaffEdit(staff.id);
         return;
       }
+
       addQuickStaffEvent(staff);
     };
+
     list.appendChild(chip);
   });
 }
 
-function addQuickStaffEvent(staff){
+async function addQuickStaffEvent(staff){
   if(!editMode) return;
+
   const dateKey=keyOf(selected);
-  events.push({
-    id:uid(),
+
+  await addDoc(eventsRef, {
     date:dateKey,
     title:staff.name,
     start:staff.start,
     end:staff.end,
-    color:staff.color
+    color:staff.color,
+    order:Date.now()
   });
-  saveStore();
-  render();
 }
 
-function addStaff(){
+async function addStaff(){
   if(!editMode) return;
+
   const name=document.getElementById("staffNameInput").value.trim();
   if(!name) return;
-  staffLabels.push({
-    id:uid(),
+
+  await addDoc(staffRef, {
     name,
     start:document.getElementById("staffStartInput").value,
     end:document.getElementById("staffEndInput").value,
-    color:document.getElementById("staffColorInput").value
+    color:document.getElementById("staffColorInput").value,
+    order:Date.now()
   });
+
   document.getElementById("staffNameInput").value="";
-  saveStaff();
-  render();
 }
 
 function openStaffEdit(id){
   const s=staffLabels.find(x=>x.id===id);
   if(!s) return;
+
   editingStaffId=id;
   document.getElementById("editStaffName").value=s.name;
   document.getElementById("editStaffStart").value=s.start;
@@ -1087,28 +1166,30 @@ function closeStaff(){
   editingStaffId=null;
 }
 
-function saveStaffEdit(){
-  const s=staffLabels.find(x=>x.id===editingStaffId);
-  if(!s) return;
-  s.name=document.getElementById("editStaffName").value.trim();
-  s.start=document.getElementById("editStaffStart").value;
-  s.end=document.getElementById("editStaffEnd").value;
-  s.color=document.getElementById("editStaffColor").value;
-  saveStaff();
+async function saveStaffEdit(){
+  if(!editingStaffId) return;
+
+  await updateDoc(doc(db, "staffLabels", editingStaffId), {
+    name:document.getElementById("editStaffName").value.trim(),
+    start:document.getElementById("editStaffStart").value,
+    end:document.getElementById("editStaffEnd").value,
+    color:document.getElementById("editStaffColor").value
+  });
+
   closeStaff();
-  render();
 }
 
-function deleteStaff(){
-  staffLabels=staffLabels.filter(x=>x.id!==editingStaffId);
-  saveStaff();
+async function deleteStaff(){
+  if(!editingStaffId) return;
+
+  await deleteDoc(doc(db, "staffLabels", editingStaffId));
   closeStaff();
-  render();
 }
 
 function renderCalendar(){
   const grid=document.getElementById("calendarGrid");
   grid.innerHTML="";
+
   const year=current.getFullYear();
   const month=current.getMonth();
   document.getElementById("monthTitle").textContent=`${monthNames[month]} ${year}`;
@@ -1120,9 +1201,11 @@ function renderCalendar(){
   for(let i=0;i<35;i++){
     const date=new Date(start);
     date.setDate(start.getDate()+i);
+
     const dateKey=keyOf(date);
     const day=document.createElement("div");
     day.className="day";
+
     if(date.getMonth()!==month) day.classList.add("other");
     if(dateKey===keyOf(selected)) day.classList.add("selected");
 
@@ -1133,93 +1216,117 @@ function renderCalendar(){
 
     day.onclick=(e)=>{
       if(e.target.closest(".event")) return;
+
       selected=new Date(date);
       activeDateKey=dateKey;
+
       if(editMode) openAdd(dateKey);
       render();
     };
 
     day.ondragover=e=>e.preventDefault();
-    day.ondrop=e=>{
+
+    day.ondrop=async e=>{
       e.preventDefault();
+
       if(!editMode || !draggingId) return;
+
       const original=events.find(ev=>ev.id===draggingId);
       if(!original) return;
+
       if(altPressed){
-        events.push({...original,id:uid(),date:dateKey});
+        await addDoc(eventsRef, {
+          date:dateKey,
+          title:original.title,
+          start:original.start,
+          end:original.end,
+          color:original.color,
+          order:Date.now()
+        });
       }else{
-        original.date=dateKey;
+        await updateDoc(doc(db, "events", draggingId), {
+          date:dateKey,
+          order:Date.now()
+        });
       }
-      saveStore();
+
       draggingId=null;
-      render();
     };
 
     const list=day.querySelector(".events");
-   events.filter(ev=>ev.date===dateKey).forEach(ev=>{
-  const item=document.createElement("div");
-  item.className="event"+(!editMode?" locked":"");
-  item.draggable=editMode;
-  item.style.background=ev.color;
 
-  // 🔥 월간보기는 제목만
-  item.textContent = ev.title;
+    sortEvents(events)
+      .filter(ev=>ev.date===dateKey)
+      .forEach(ev=>{
+        const item=document.createElement("div");
+        item.className="event"+(!editMode?" locked":"");
+        item.draggable=editMode;
+        item.style.background=ev.color;
+        item.textContent=ev.title;
 
-  item.onclick=(e)=>{
-    e.stopPropagation();
-    selected=new Date(date);
-    if(editMode) openEdit(ev.id);
-    renderDetail();
-  };
+        item.onclick=(e)=>{
+          e.stopPropagation();
+          selected=new Date(date);
+          if(editMode) openEdit(ev.id);
+          renderDetail();
+        };
 
-  // 🔥 드래그 시작
-  item.ondragstart=()=>{
-    if(!editMode) return;
-    draggingId = ev.id;
-    item.classList.add("dragging");
-  };
+        item.ondragstart=()=>{
+          if(!editMode) return;
+          draggingId=ev.id;
+          item.classList.add("dragging");
+        };
 
-  item.ondragend=()=>{
-    item.classList.remove("dragging");
-  };
+        item.ondragend=()=>{
+          item.classList.remove("dragging");
+        };
 
-  // 🔥 같은 날짜 내 순서 변경
-  item.ondragover=(e)=>{
-    if(!editMode) return;
-    e.preventDefault();
-    dragOverId = ev.id;
-    item.classList.add("over");
-  };
+        item.ondragover=e=>{
+          if(!editMode) return;
+          e.preventDefault();
+          dragOverId=ev.id;
+          item.classList.add("over");
+        };
 
-  item.ondragleave=()=>{
-    item.classList.remove("over");
-  };
+        item.ondragleave=()=>{
+          item.classList.remove("over");
+        };
 
-  item.ondrop=(e)=>{
-    e.stopPropagation();
-    if(!editMode || !draggingId) return;
+        item.ondrop=async e=>{
+          e.stopPropagation();
 
-    const fromIndex = events.findIndex(x=>x.id===draggingId);
-    const toIndex = events.findIndex(x=>x.id===dragOverId);
+          if(!editMode || !draggingId || !dragOverId) return;
 
-    if(fromIndex === -1 || toIndex === -1) return;
+          const fromEvent=events.find(x=>x.id===draggingId);
+          const toEvent=events.find(x=>x.id===dragOverId);
 
-    const fromEvent = events[fromIndex];
-    const toEvent = events[toIndex];
+          if(!fromEvent || !toEvent) return;
 
-    // 👉 같은 날짜일 때만 순서 변경
-    if(fromEvent.date === toEvent.date){
-      const moved = events.splice(fromIndex,1)[0];
-      events.splice(toIndex,0,moved);
-    }
+          if(fromEvent.date === toEvent.date){
+            const sameDay=sortEvents(events).filter(x=>x.date===fromEvent.date);
+            const fromIndex=sameDay.findIndex(x=>x.id===draggingId);
+            const toIndex=sameDay.findIndex(x=>x.id===dragOverId);
 
-    saveStore();
-    draggingId = null;
-    render();
-  };
+            if(fromIndex !== -1 && toIndex !== -1){
+              const moved=sameDay.splice(fromIndex,1)[0];
+              sameDay.splice(toIndex,0,moved);
 
-  list.appendChild(item);
-});
+              const batch=writeBatch(db);
+              sameDay.forEach((item,index)=>{
+                batch.update(doc(db, "events", item.id), {
+                  order:Date.now()+index
+                });
+              });
+              await batch.commit();
+            }
+          }
+
+          draggingId=null;
+          dragOverId=null;
+        };
+
+        list.appendChild(item);
+      });
 
     grid.appendChild(day);
   }
@@ -1227,8 +1334,11 @@ function renderCalendar(){
 
 function renderDetail(){
   const dateKey=keyOf(selected);
-  const dayEvents=events.filter(ev=>ev.date===dateKey);
-  document.getElementById("selectedDateText").textContent=`${selected.getMonth()+1}월 ${selected.getDate()}일 (${dayNames[selected.getDay()]})`;
+  const dayEvents=sortEvents(events).filter(ev=>ev.date===dateKey);
+
+  document.getElementById("selectedDateText").textContent=
+    `${selected.getMonth()+1}월 ${selected.getDate()}일 (${dayNames[selected.getDay()]})`;
+
   const box=document.getElementById("detailContent");
 
   if(!dayEvents.length){
@@ -1247,10 +1357,19 @@ function renderDetail(){
       ${ev.title}
       <small>${ev.start} - ${ev.end}</small>
       <div class="detail-actions">
-        <button onclick="openEdit('${ev.id}')">수정</button>
-        <button onclick="deleteEventById('${ev.id}')">삭제</button>
+        <button data-edit="${ev.id}">수정</button>
+        <button data-delete="${ev.id}">삭제</button>
       </div>
     `;
+
+    div.querySelector("[data-edit]")?.addEventListener("click",()=>{
+      openEdit(ev.id);
+    });
+
+    div.querySelector("[data-delete]")?.addEventListener("click",()=>{
+      deleteEventById(ev.id);
+    });
+
     wrap.appendChild(div);
   });
 }
@@ -1285,8 +1404,10 @@ function closeEvent(){
 
 function openAdd(dateKey){
   if(!editMode) return;
+
   editingId=null;
   activeDateKey=dateKey;
+
   document.getElementById("eventModalTitle").textContent="일정 추가";
   document.getElementById("eventTitle").value="";
   document.getElementById("startTime").value="09:00";
@@ -1296,79 +1417,118 @@ function openAdd(dateKey){
   document.getElementById("multiToggle").checked=false;
   document.getElementById("multiBox").classList.remove("show");
   document.getElementById("dateList").innerHTML="";
+
   document.getElementById("eventActions").innerHTML=`
-    <button onclick="closeEvent()">취소</button>
-    <button onclick="saveEvent()">저장</button>
+    <button type="button" id="cancelEventBtn">취소</button>
+    <button type="button" id="saveEventBtn">저장</button>
   `;
+
+  document.getElementById("cancelEventBtn").onclick=closeEvent;
+  document.getElementById("saveEventBtn").onclick=saveEvent;
+
   document.getElementById("eventOverlay").classList.add("open");
 }
 
 function openEdit(id){
   if(!editMode) return;
+
   const ev=events.find(e=>e.id===id);
   if(!ev) return;
+
   editingId=id;
   activeDateKey=ev.date;
+
   document.getElementById("eventModalTitle").textContent="일정 수정";
   document.getElementById("eventTitle").value=ev.title;
   document.getElementById("startTime").value=ev.start;
   document.getElementById("endTime").value=ev.end;
   document.getElementById("eventColor").value=ev.color;
   document.getElementById("multiArea").style.display="none";
+
   document.getElementById("eventActions").innerHTML=`
-    <button onclick="deleteEvent()">삭제</button>
-    <button onclick="closeEvent()">취소</button>
-    <button onclick="saveEvent()">저장</button>
+    <button type="button" id="deleteEventBtn">삭제</button>
+    <button type="button" id="cancelEventBtn">취소</button>
+    <button type="button" id="saveEventBtn">저장</button>
   `;
+
+  document.getElementById("deleteEventBtn").onclick=deleteEvent;
+  document.getElementById("cancelEventBtn").onclick=closeEvent;
+  document.getElementById("saveEventBtn").onclick=saveEvent;
+
   document.getElementById("eventOverlay").classList.add("open");
 }
 
-function saveEvent(){
+async function saveEvent(){
   if(!editMode) return;
+
   const title=document.getElementById("eventTitle").value.trim();
   const start=document.getElementById("startTime").value;
   const end=document.getElementById("endTime").value;
   const color=document.getElementById("eventColor").value;
+
   if(!title) return;
 
   if(editingId){
-    const ev=events.find(e=>e.id===editingId);
-    ev.title=title;
-    ev.start=start;
-    ev.end=end;
-    ev.color=color;
-  }else{
-    events.push({id:uid(),date:activeDateKey,title,start,end,color});
-    document.querySelectorAll(".extra-date").forEach(input=>{
-      if(!input.value) return;
-      events.push({id:uid(),date:input.value,title,start,end,color});
+    await updateDoc(doc(db, "events", editingId), {
+      title,
+      start,
+      end,
+      color
     });
+  }else{
+    await addDoc(eventsRef, {
+      date:activeDateKey,
+      title,
+      start,
+      end,
+      color,
+      order:Date.now()
+    });
+
+    const extraDates=document.querySelectorAll(".extra-date");
+
+    for(const input of extraDates){
+      if(!input.value) continue;
+
+      await addDoc(eventsRef, {
+        date:input.value,
+        title,
+        start,
+        end,
+        color,
+        order:Date.now()
+      });
+    }
   }
 
   selectedColor=color;
   document.getElementById("globalColor").value=color;
   document.getElementById("colorText").textContent=color;
-  saveStore();
-  closeEvent();
-  render();
-}
-
-function deleteEvent(){
-  deleteEventById(editingId);
   closeEvent();
 }
 
-function deleteEventById(id){
-  if(!editMode) return;
-  events=events.filter(ev=>ev.id!==id);
-  saveStore();
-  render();
+async function deleteEvent(){
+  await deleteEventById(editingId);
+  closeEvent();
+}
+
+async function deleteEventById(id){
+  if(!editMode || !id) return;
+  await deleteDoc(doc(db, "events", id));
 }
 
 function addDateInput(){
   const row=document.createElement("div");
   row.className="date-row";
-  row.innerHTML=`<input type="date" class="extra-date"><button onclick="this.parentElement.remove()">×</button>`;
+  row.innerHTML=`
+    <input type="date" class="extra-date">
+    <button type="button">×</button>
+  `;
+
+  row.querySelector("button").onclick=()=>{
+    row.remove();
+  };
+
   document.getElementById("dateList").appendChild(row);
 }
 
@@ -1379,7 +1539,9 @@ document.getElementById("editBtn").onclick=()=>{
     document.getElementById("editBtn").textContent="편집";
     document.getElementById("addStaffBox").classList.remove("show");
     render();
-  }else openPw();
+  }else{
+    openPw();
+  }
 };
 
 document.getElementById("todayBtn").onclick=()=>{
@@ -1389,8 +1551,13 @@ document.getElementById("todayBtn").onclick=()=>{
   render();
 };
 
-document.getElementById("prevBtn").onclick=()=>moveMonth(-1);
-document.getElementById("nextBtn").onclick=()=>moveMonth(1);
+document.getElementById("prevBtn").onclick=()=>{
+  moveMonth(-1);
+};
+
+document.getElementById("nextBtn").onclick=()=>{
+  moveMonth(1);
+};
 
 document.getElementById("globalColor").oninput=e=>{
   selectedColor=e.target.value;
@@ -1403,11 +1570,16 @@ document.getElementById("multiToggle").onchange=e=>{
   if(e.target.checked && !document.querySelector(".extra-date")) addDateInput();
 };
 
-document.addEventListener("keydown",e=>{if(e.altKey)altPressed=true});
-document.addEventListener("keyup",e=>{if(!e.altKey)altPressed=false});
+document.addEventListener("keydown",e=>{
+  if(e.altKey) altPressed=true;
+});
+
+document.addEventListener("keyup",e=>{
+  if(!e.altKey) altPressed=false;
+});
 
 document.getElementById("pwInput").addEventListener("keydown",e=>{
-  if(e.key==="Enter")submitPw();
+  if(e.key==="Enter") submitPw();
 });
 
 document.querySelectorAll(".overlay").forEach(overlay=>{
@@ -1416,7 +1588,13 @@ document.querySelectorAll(".overlay").forEach(overlay=>{
   });
 });
 
-render();
+window.closePw=closePw;
+window.submitPw=submitPw;
+window.addStaff=addStaff;
+window.closeStaff=closeStaff;
+window.saveStaffEdit=saveStaffEdit;
+window.deleteStaff=deleteStaff;
+window.addDateInput=addDateInput;
 </script>
 </body>
 </html>
