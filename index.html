@@ -771,6 +771,14 @@ input:focus{
     font-size:28px;
   }
 }
+
+.event.dragging{
+  opacity:.4;
+}
+
+.event.over{
+  outline:2px dashed #111;
+}
 </style>
 </head>
 
@@ -953,6 +961,7 @@ input:focus{
 </div>
 
 <script>
+let dragOverId = null;
 const PASSWORD = "oozyeastside!";
 const STORE_KEY = "oozy_events_final_clean_v1";
 const STAFF_KEY = "oozy_staff_final_clean_v1";
@@ -1147,27 +1156,70 @@ function renderCalendar(){
     };
 
     const list=day.querySelector(".events");
-    events.filter(ev=>ev.date===dateKey).forEach(ev=>{
-      const item=document.createElement("div");
-      item.className="event"+(!editMode?" locked":"");
-      item.draggable=editMode;
-      item.style.background=ev.color;
-      item.textContent=`${ev.title} ${ev.start}-${ev.end}`;
+   events.filter(ev=>ev.date===dateKey).forEach(ev=>{
+  const item=document.createElement("div");
+  item.className="event"+(!editMode?" locked":"");
+  item.draggable=editMode;
+  item.style.background=ev.color;
 
-      item.onclick=(e)=>{
-        e.stopPropagation();
-        selected=new Date(date);
-        if(editMode) openEdit(ev.id);
-        renderDetail();
-      };
+  // 🔥 월간보기는 제목만
+  item.textContent = ev.title;
 
-      item.ondragstart=()=>{
-        if(!editMode) return;
-        draggingId=ev.id;
-      };
+  item.onclick=(e)=>{
+    e.stopPropagation();
+    selected=new Date(date);
+    if(editMode) openEdit(ev.id);
+    renderDetail();
+  };
 
-      list.appendChild(item);
-    });
+  // 🔥 드래그 시작
+  item.ondragstart=()=>{
+    if(!editMode) return;
+    draggingId = ev.id;
+    item.classList.add("dragging");
+  };
+
+  item.ondragend=()=>{
+    item.classList.remove("dragging");
+  };
+
+  // 🔥 같은 날짜 내 순서 변경
+  item.ondragover=(e)=>{
+    if(!editMode) return;
+    e.preventDefault();
+    dragOverId = ev.id;
+    item.classList.add("over");
+  };
+
+  item.ondragleave=()=>{
+    item.classList.remove("over");
+  };
+
+  item.ondrop=(e)=>{
+    e.stopPropagation();
+    if(!editMode || !draggingId) return;
+
+    const fromIndex = events.findIndex(x=>x.id===draggingId);
+    const toIndex = events.findIndex(x=>x.id===dragOverId);
+
+    if(fromIndex === -1 || toIndex === -1) return;
+
+    const fromEvent = events[fromIndex];
+    const toEvent = events[toIndex];
+
+    // 👉 같은 날짜일 때만 순서 변경
+    if(fromEvent.date === toEvent.date){
+      const moved = events.splice(fromIndex,1)[0];
+      events.splice(toIndex,0,moved);
+    }
+
+    saveStore();
+    draggingId = null;
+    render();
+  };
+
+  list.appendChild(item);
+});
 
     grid.appendChild(day);
   }
@@ -1350,19 +1402,6 @@ document.getElementById("multiToggle").onchange=e=>{
   document.getElementById("multiBox").classList.toggle("show",e.target.checked);
   if(e.target.checked && !document.querySelector(".extra-date")) addDateInput();
 };
-
-document.getElementById("mainCalendarCard").addEventListener("wheel", e=>{
-  const mostlyHorizontal = Math.abs(e.deltaX) > Math.abs(e.deltaY);
-  if(!mostlyHorizontal || wheelLock) return;
-
-  e.preventDefault();
-  wheelLock = true;
-
-  if(e.deltaX > 0) moveMonth(1);
-  else moveMonth(-1);
-
-  setTimeout(()=>wheelLock=false, 520);
-},{passive:false});
 
 document.addEventListener("keydown",e=>{if(e.altKey)altPressed=true});
 document.addEventListener("keyup",e=>{if(!e.altKey)altPressed=false});
