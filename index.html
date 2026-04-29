@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>oozyeastside calendar</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,75..125,100..900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --en:"Archivo",sans-serif;
+  --ko:"Pretendard",sans-serif;
+  --card:rgba(255,255,255,.72);
+  --ink:#111;
+  --muted:#777;
+  --line:rgba(17,17,17,.13);
+  --radius:22px;
+}
+
+body{
+  font-family:var(--ko);
+  background:#000000;
+  color:var(--ink);
+  font-weight:300;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+.hero{
+  height:32vh;
+  min-height:230px;
+  position:relative;
+  overflow:hidden;
+  background:#000;
+  display:flex;
+  align-items:center;
+}
+
+.hero video{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  opacity:.78;
+}
+
+.hero::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(to bottom, rgba(0,0,0,.15), rgba(0,0,0,.32));
+}
+
+.marquee{
+  position:relative;
+  z-index:2;
+  width:100%;
+  overflow:hidden;
+}
+
+.marquee-track{
+  display:flex;
+  width:max-content;
+  white-space:nowrap;
+  animation:marquee 16s linear infinite;
+}
+
+.marquee span{
+  font-family:var(--en);
+  font-size:clamp(58px,10vw,145px);
+  font-weight:300;
+  font-variation-settings:"wdth" 112;
+  letter-spacing:-.05em;
+  color:#fff;
+  padding-right:.45em;
+  line-height:.9;
+}
+
+@keyframes marquee{
+  from{transform:translateX(0)}
+  to{transform:translateX(-50%)}
+}
+
+.app{
+  position:relative;
+  display:grid;
+  grid-template-columns:280px minmax(640px,1fr) 360px;
+  gap:18px;
+  padding:18px;
+  max-width:1700px;
+  margin:0 auto;
+  isolation:isolate;
+}
+
+.app-bg-video{
+  position:absolute;
+  inset:0;
+  z-index:-2;
+  overflow:hidden;
+  border-radius:0;
+}
+
+.app-bg-video video{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  filter:blur(24px);
+  transform:scale(1.12);
+  opacity:.55;
+}
+
+.app::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:-1;
+  background:rgba(244,241,235,.56);
+  backdrop-filter:blur(12px);
+  pointer-events:none;
+}
+
+.card{
+  background:var(--card);
+  border:1px solid rgba(255,255,255,.72);
+  border-radius:var(--radius);
+  box-shadow:0 22px 70px rgba(0,0,0,.08);
+  backdrop-filter:blur(5px);
+  -webkit-backdrop-filter:blur(24px);
+}
+
+.side{
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+}
+
+.panel{
+  padding:26px;
+}
+
+.panel-title{
+  font-size:12px;
+  font-weight:400;
+  letter-spacing:.18em;
+  color:var(--muted);
+  margin-bottom:22px;
+  line-height:1;
+}
+
+.guide-list{
+  list-style:none;
+  display:grid;
+  gap:13px;
+  font-size:15px;
+  line-height:1.5;
+}
+
+.guide-list li::before{
+  content:"*";
+  margin-right:10px;
+  color:#111;
+}
+
+.color-row{
+  display:flex;
+  gap:12px;
+  align-items:center;
+}
+
+input[type="color"]{
+  appearance:none;
+  -webkit-appearance:none;
+  width:54px;
+  height:38px;
+  border:1px solid rgba(17,17,17,.18);
+  border-radius:999px;
+  padding:0;
+  overflow:hidden;
+  cursor:pointer;
+  background:transparent;
+}
+
+input[type="color"]::-webkit-color-swatch-wrapper{padding:0}
+input[type="color"]::-webkit-color-swatch{border:none;border-radius:999px}
+input[type="color"]::-moz-color-swatch{border:none;border-radius:999px}
+
+.current-color{
+  font-size:13px;
+  color:#777;
+}
+
+.staff-list{
+  display:grid;
+  gap:9px;
+}
+
+.staff-chip{
+  width:100%;
+  border:1px solid rgba(17,17,17,.12);
+  background:rgba(255,255,255,.58);
+  border-radius:16px;
+  padding:11px 12px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  cursor:pointer;
+  font-family:var(--ko);
+  font-size:15px;
+  font-weight:300;
+  color:#111;
+  text-align:left;
+}
+
+.staff-chip.locked{
+  opacity:.55;
+  cursor:not-allowed;
+}
+
+.staff-dot{
+  width:16px;
+  height:16px;
+  border-radius:50%;
+  border:1px solid rgba(0,0,0,.18);
+  flex-shrink:0;
+}
+
+.staff-time{
+  margin-left:auto;
+  color:#777;
+  font-size:12px;
+}
+
+.staff-actions{
+  display:none;
+  gap:6px;
+  margin-left:6px;
+}
+
+.editing .staff-actions{display:flex}
+
+.icon-btn{
+  border:1px solid rgba(17,17,17,.18);
+  background:#fff;
+  border-radius:999px;
+  width:42px;
+  height:26px;
+  cursor:pointer;
+  font-size:12px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.icon-btn:hover{
+  background:#111;
+  color:#fff;
+}
+
+.add-staff{
+  margin-top:14px;
+  display:none;
+  gap:8px;
+}
+
+.add-staff.show{display:grid}
+
+.main-card{
+  padding:28px 26px 34px;
+}
+
+.calendar-head,
+.detail-top{
+  height:88px;
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  padding-bottom:18px;
+  margin-bottom:26px;
+  border-bottom:1px solid rgba(17,17,17,.14);
+}
+
+.title-block{
+  display:flex;
+  flex-direction:column;
+}
+
+.detail-top{
+  margin-bottom:34px;
+}
+
+.eyebrow,
+.panel-title.in-detail{
+  font-size:12px;
+  font-weight:400;
+  letter-spacing:.18em;
+  color:#777;
+  margin-bottom:6px;
+  line-height:1;
+}
+
+.month-title,
+.selected-date{
+  font-family:var(--en);
+  font-size:46px;
+  font-weight:300;
+  letter-spacing:-.07em;
+  line-height:.9;
+  margin:0;
+}
+
+.month-title{
+  font-family:var(--en);
+  font-size:46px;
+  font-weight:360;
+  font-variation-settings:"wdth" 112;
+  letter-spacing:-.07em;
+  line-height:.9;
+}
+
+.nav{
+  display:flex;
+  gap:8px;
+  align-items:center;
+}
+
+button{
+  font-family:var(--ko);
+}
+
+.nav button,
+.edit-btn,
+.modal button,
+.small-btn{
+  border:1px solid rgba(17,17,17,.16);
+  background:rgba(255,255,255,.68);
+  color:#111;
+  border-radius:999px;
+  height:46px;
+  min-width:46px;
+  padding:0 18px;
+  font-size:15px;
+  font-weight:300;
+  cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  line-height:1;
+}
+
+.nav button:hover,
+.edit-btn:hover,
+.modal button:hover,
+.small-btn:hover{
+  background:#111;
+  color:#fff;
+  border-color:#111;
+}
+
+.edit-btn.active{
+  background:#111;
+  color:#fff;
+  border-color:#111;
+}
+
+.weekdays{
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  padding:0 0 12px;
+  font-size:13px;
+  font-weight:300;
+  color:#777;
+  text-align:right;
+}
+
+.weekdays div{
+  padding-right:12px;
+}
+
+.calendar-grid{
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  gap:8px;
+  touch-action:pan-y;
+}
+
+.day{
+  min-height:132px;
+  border:1px solid rgba(17,17,17,.10);
+  border-radius:18px;
+  padding:12px;
+  position:relative;
+  background:rgba(255,255,255,.54);
+  cursor:pointer;
+  overflow:hidden;
+}
+
+.day:hover{
+  background:rgba(255,255,255,.84);
+}
+
+.day.selected{
+  background:rgba(233, 244, 249, 0.95);
+  border-color:#111;
+}
+
+.day.other{
+  color:#c4c4c4;
+  opacity:.68;
+}
+
+.day-number{
+  text-align:right;
+  font-size:19px;
+  font-weight:300;
+  letter-spacing:-.04em;
+  margin-bottom:10px;
+}
+
+.events{
+  display:grid;
+  gap:6px;
+}
+
+.event{
+  font-size:13px;
+  font-weight:300;
+  border-radius:999px;
+  padding:6px 9px;
+  color:#111;
+  cursor:grab;
+  user-select:none;
+  overflow:hidden;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+  border:1px solid rgba(0,0,0,.08);
+}
+
+.event.locked{cursor:default}
+
+.detail-card{
+  padding:34px 28px;
+}
+
+.selected-date{
+  font-family:var(--ko); /* Pretendard로 통일 */
+  font-size:40px;
+  font-weight:300;
+  letter-spacing:-.04em;
+  line-height:1.2;
+}
+
+.empty-text{
+  font-size:16px;
+  color:#777;
+  line-height:1.65;
+}
+
+.detail-events{
+  display:grid;
+  gap:12px;
+}
+
+.detail-event{
+  border:1px solid rgba(17,17,17,.12);
+  border-left-width:8px;
+  border-radius:18px;
+  background:rgba(255,255,255,.58);
+  padding:15px;
+  font-size:16px;
+  font-weight:300;
+}
+
+.detail-event small{
+  display:block;
+  margin-top:4px;
+  font-size:13px;
+  color:#777;
+}
+
+.detail-actions{
+  display:none;
+  gap:8px;
+  margin-top:12px;
+}
+
+.editing .detail-actions{display:flex}
+
+.detail-actions button{
+  border:1px solid rgba(17,17,17,.18);
+  background:#fff;
+  border-radius:999px;
+  padding:7px 12px;
+  cursor:pointer;
+  font-weight:300;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.detail-actions button:hover{
+  background:#111;
+  color:#fff;
+}
+
+.overlay{
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:99;
+  background:rgba(20,20,20,.35);
+  backdrop-filter:blur(16px);
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+}
+
+.overlay.open{display:flex}
+
+.modal{
+  width:100%;
+  max-width:460px;
+  background:rgba(255,255,255,.84);
+  border:1px solid rgba(255,255,255,.72);
+  border-radius:22px;
+  padding:30px;
+  box-shadow:0 24px 80px rgba(0,0,0,.14);
+  backdrop-filter:blur(24px);
+}
+
+.modal-title{
+  font-size:30px;
+  font-weight:300;
+  letter-spacing:-.06em;
+  margin-bottom:24px;
+}
+
+.field{
+  margin-bottom:18px;
+}
+
+label{
+  display:block;
+  font-size:13px;
+  font-weight:300;
+  color:#777;
+  margin-bottom:8px;
+}
+
+input{
+  width:100%;
+  height:44px;
+  border:1px solid rgba(17,17,17,.14);
+  border-radius:14px;
+  padding:0 12px;
+  font-family:var(--ko);
+  font-size:15px;
+  font-weight:300;
+  outline:none;
+  background:rgba(255,255,255,.72);
+}
+
+input:focus{
+  border-color:#111;
+  background:#fff;
+}
+
+.modal-actions{
+  display:flex;
+  gap:10px;
+  margin-top:26px;
+}
+
+.modal-actions button{flex:1}
+
+.multi-box{
+  display:none;
+  margin-top:10px;
+}
+
+.multi-box.show{display:block}
+
+.date-row{
+  display:flex;
+  gap:8px;
+  margin-bottom:8px;
+}
+
+.date-row button{
+  min-width:44px;
+  height:44px;
+  padding:0;
+}
+
+.error{
+  display:none;
+  margin-top:8px;
+  font-size:13px;
+  color:#111;
+}
+
+@media(max-width:1200px){
+  .app{grid-template-columns:1fr}
+  .side{display:grid;grid-template-columns:1fr 1fr}
+}
+
+@media(max-width:700px){
+  .hero{height:26vh;min-height:180px}
+  .app{padding:12px;gap:12px}
+  .side{grid-template-columns:1fr}
+  .main-card,.panel,.detail-card{padding:22px}
+  .calendar-head,.detail-top{height:auto;min-height:76px}
+  .day{min-height:92px;padding:8px;border-radius:16px}
+  .day-number{font-size:15px}
+  .event{font-size:11px;padding:4px 6px}
+  .month-title{font-size:34px}
+}
+</style>
+</head>
+
+<body>
+
+<section class="hero">
+  <video autoplay muted loop playsinline>
+    <source src="IMG_4607.mov" type="video/quicktime">
+    <source src="IMG_4607.mov" type="video/mp4">
+  </video>
+
+  <div class="marquee">
+    <div class="marquee-track">
+      <span>oozyeastside * oozyeastside * oozyeastside * oozyeastside * </span>
+      <span>oozyeastside * oozyeastside * oozyeastside * oozyeastside * </span>
+    </div>
+  </div>
+</section>
+
+<div class="app" id="app">
+  <div class="app-bg-video">
+    <video autoplay muted loop playsinline>
+      <source src="IMG_4607.mov" type="video/quicktime">
+      <source src="IMG_4607.mov" type="video/mp4">
+    </video>
+  </div>
+
+  <aside class="side">
+    <section class="card panel">
+      <h2 class="panel-title">간단 안내</h2>
+      <ul class="guide-list">
+        <li>편집 모드에서만 추가 가능</li>
+        <li>날짜 클릭: 일정 추가</li>
+        <li>라벨 클릭: 선택한 날짜에 추가</li>
+        <li>드래그: 이동</li>
+        <li>Alt + 드래그: 복사</li>
+      </ul>
+    </section>
+
+    <section class="card panel">
+      <h2 class="panel-title">기본 색상</h2>
+      <div class="color-row">
+        <input class="color-input" type="color" id="globalColor" value="#111111">
+        <span class="current-color" id="colorText">#111111</span>
+      </div>
+    </section>
+
+    <section class="card panel">
+      <h2 class="panel-title">알바생 라벨</h2>
+      <div class="staff-list" id="staffList"></div>
+
+      <div class="add-staff" id="addStaffBox">
+        <input id="staffNameInput" placeholder="이름">
+        <input type="time" id="staffStartInput" value="09:00">
+        <input type="time" id="staffEndInput" value="17:00">
+        <input type="color" id="staffColorInput" value="#111111">
+        <button class="small-btn" onclick="addStaff()">라벨 추가</button>
+      </div>
+    </section>
+  </aside>
+
+  <main class="card main-card" id="mainCalendarCard">
+    <div class="calendar-head">
+      <div>
+        <div class="eyebrow">월간 보기</div>
+        <h1 class="month-title" id="monthTitle">april 2026</h1>
+      </div>
+
+      <div class="nav">
+        <button id="todayBtn">오늘</button>
+        <button id="prevBtn">‹</button>
+        <button id="nextBtn">›</button>
+        <button class="edit-btn" id="editBtn">편집</button>
+      </div>
+    </div>
+
+    <div class="weekdays">
+      <div>일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div>
+    </div>
+
+    <div class="calendar-grid" id="calendarGrid"></div>
+  </main>
+
+<aside class="card detail-card">
+  <div class="detail-top">
+    <div class="title-block">
+      <div class="panel-title in-detail">선택한 날짜</div>
+      <div class="selected-date" id="selectedDateText">4월 28일 (화)</div>
+    </div>
+  </div>
+
+  <div id="detailContent"></div>
+</aside>
+</div>
+
+<div class="overlay" id="pwOverlay">
+  <div class="modal">
+    <div class="modal-title">편집자 접근</div>
+    <div class="field">
+      <label>비밀번호</label>
+      <input type="password" id="pwInput" placeholder="password">
+      <div class="error" id="pwError">비밀번호가 맞지 않습니다.</div>
+    </div>
+    <div class="modal-actions">
+      <button onclick="closePw()">취소</button>
+      <button onclick="submitPw()">입장</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="eventOverlay">
+  <div class="modal">
+    <div class="modal-title" id="eventModalTitle">일정 추가</div>
+
+    <div class="field">
+      <label>직원 / 일정명</label>
+      <input id="eventTitle" placeholder="우즈">
+    </div>
+
+    <div class="field">
+      <label>시작 시간</label>
+      <input type="time" id="startTime" value="09:00">
+    </div>
+
+    <div class="field">
+      <label>종료 시간</label>
+      <input type="time" id="endTime" value="17:00">
+    </div>
+
+    <div class="field">
+      <label>색상</label>
+      <input type="color" id="eventColor" value="#111111">
+    </div>
+
+    <div class="field" id="multiArea">
+      <label>
+        <input type="checkbox" id="multiToggle" style="width:auto;height:auto;margin-right:8px;">
+        여러 날짜
+      </label>
+      <div class="multi-box" id="multiBox">
+        <div id="dateList"></div>
+        <button onclick="addDateInput()">+ 날짜</button>
+      </div>
+    </div>
+
+    <div class="modal-actions" id="eventActions"></div>
+  </div>
+</div>
+
+<div class="overlay" id="staffOverlay">
+  <div class="modal">
+    <div class="modal-title">라벨 수정</div>
+
+    <div class="field">
+      <label>이름</label>
+      <input id="editStaffName">
+    </div>
+
+    <div class="field">
+      <label>시작 시간</label>
+      <input type="time" id="editStaffStart">
+    </div>
+
+    <div class="field">
+      <label>종료 시간</label>
+      <input type="time" id="editStaffEnd">
+    </div>
+
+    <div class="field">
+      <label>색상</label>
+      <input type="color" id="editStaffColor">
+    </div>
+
+    <div class="modal-actions">
+      <button onclick="deleteStaff()">삭제</button>
+      <button onclick="closeStaff()">취소</button>
+      <button onclick="saveStaffEdit()">저장</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const PASSWORD = "oozyeastside!";
+const STORE_KEY = "oozy_events_video_blur_v1";
+const STAFF_KEY = "oozy_staff_video_blur_v1";
+
+const monthNames = ["january","february","march","april","may","june","july","august","september","october","november","december"];
+const dayNames = ["일","월","화","수","목","금","토"];
+
+let current = new Date(2026,3,1);
+let selected = new Date(2026,3,28);
+let editMode = false;
+let selectedColor = "#111111";
+let editingId = null;
+let editingStaffId = null;
+let activeDateKey = null;
+let draggingId = null;
+let altPressed = false;
+let wheelLock = false;
+
+let events = JSON.parse(localStorage.getItem(STORE_KEY) || "[]");
+let staffLabels = JSON.parse(localStorage.getItem(STAFF_KEY) || "[]");
+
+if(!staffLabels.length){
+  staffLabels = [
+    {id:"s1", name:"김규랑", start:"09:00", end:"17:00", color:"#111111"},
+    {id:"s2", name:"전지윤", start:"13:00", end:"18:00", color:"#666666"}
+  ];
+  saveStaff();
+}
+
+function saveStore(){localStorage.setItem(STORE_KEY,JSON.stringify(events))}
+function saveStaff(){localStorage.setItem(STAFF_KEY,JSON.stringify(staffLabels))}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2)}
+
+function keyOf(date){
+  const y=date.getFullYear();
+  const m=String(date.getMonth()+1).padStart(2,"0");
+  const d=String(date.getDate()).padStart(2,"0");
+  return `${y}-${m}-${d}`;
+}
+
+function moveMonth(amount){
+  current.setMonth(current.getMonth()+amount);
+  render();
+}
+
+function render(){
+  document.getElementById("app").classList.toggle("editing", editMode);
+  renderStaff();
+  renderCalendar();
+  renderDetail();
+}
+
+function renderStaff(){
+  const list=document.getElementById("staffList");
+  list.innerHTML="";
+  staffLabels.forEach(staff=>{
+    const chip=document.createElement("button");
+    chip.className="staff-chip"+(!editMode?" locked":"");
+    chip.innerHTML=`
+      <span class="staff-dot" style="background:${staff.color}"></span>
+      <span>${staff.name}</span>
+      <span class="staff-time">${staff.start}-${staff.end}</span>
+      <span class="staff-actions">
+        <span class="icon-btn" data-act="edit">수정</span>
+      </span>
+    `;
+    chip.onclick=(e)=>{
+      if(!editMode) return;
+      if(e.target.dataset.act==="edit"){
+        openStaffEdit(staff.id);
+        return;
+      }
+      addQuickStaffEvent(staff);
+    };
+    list.appendChild(chip);
+  });
+}
+
+function addQuickStaffEvent(staff){
+  if(!editMode) return;
+  const dateKey=keyOf(selected);
+  events.push({
+    id:uid(),
+    date:dateKey,
+    title:staff.name,
+    start:staff.start,
+    end:staff.end,
+    color:staff.color
+  });
+  saveStore();
+  render();
+}
+
+function addStaff(){
+  if(!editMode) return;
+  const name=document.getElementById("staffNameInput").value.trim();
+  if(!name) return;
+  staffLabels.push({
+    id:uid(),
+    name,
+    start:document.getElementById("staffStartInput").value,
+    end:document.getElementById("staffEndInput").value,
+    color:document.getElementById("staffColorInput").value
+  });
+  document.getElementById("staffNameInput").value="";
+  saveStaff();
+  render();
+}
+
+function openStaffEdit(id){
+  const s=staffLabels.find(x=>x.id===id);
+  if(!s) return;
+  editingStaffId=id;
+  document.getElementById("editStaffName").value=s.name;
+  document.getElementById("editStaffStart").value=s.start;
+  document.getElementById("editStaffEnd").value=s.end;
+  document.getElementById("editStaffColor").value=s.color;
+  document.getElementById("staffOverlay").classList.add("open");
+}
+
+function closeStaff(){
+  document.getElementById("staffOverlay").classList.remove("open");
+  editingStaffId=null;
+}
+
+function saveStaffEdit(){
+  const s=staffLabels.find(x=>x.id===editingStaffId);
+  if(!s) return;
+  s.name=document.getElementById("editStaffName").value.trim();
+  s.start=document.getElementById("editStaffStart").value;
+  s.end=document.getElementById("editStaffEnd").value;
+  s.color=document.getElementById("editStaffColor").value;
+  saveStaff();
+  closeStaff();
+  render();
+}
+
+function deleteStaff(){
+  staffLabels=staffLabels.filter(x=>x.id!==editingStaffId);
+  saveStaff();
+  closeStaff();
+  render();
+}
+
+function renderCalendar(){
+  const grid=document.getElementById("calendarGrid");
+  grid.innerHTML="";
+  const year=current.getFullYear();
+  const month=current.getMonth();
+  document.getElementById("monthTitle").textContent=`${monthNames[month]} ${year}`;
+
+  const first=new Date(year,month,1);
+  const start=new Date(first);
+  start.setDate(first.getDate()-first.getDay());
+
+  for(let i=0;i<35;i++){
+    const date=new Date(start);
+    date.setDate(start.getDate()+i);
+    const dateKey=keyOf(date);
+    const day=document.createElement("div");
+    day.className="day";
+    if(date.getMonth()!==month) day.classList.add("other");
+    if(dateKey===keyOf(selected)) day.classList.add("selected");
+
+    day.innerHTML=`
+      <div class="day-number">${date.getDate()}일</div>
+      <div class="events"></div>
+    `;
+
+    day.onclick=(e)=>{
+      if(e.target.closest(".event")) return;
+      selected=new Date(date);
+      activeDateKey=dateKey;
+      if(editMode) openAdd(dateKey);
+      render();
+    };
+
+    day.ondragover=e=>e.preventDefault();
+    day.ondrop=e=>{
+      e.preventDefault();
+      if(!editMode || !draggingId) return;
+      const original=events.find(ev=>ev.id===draggingId);
+      if(!original) return;
+      if(altPressed){
+        events.push({...original,id:uid(),date:dateKey});
+      }else{
+        original.date=dateKey;
+      }
+      saveStore();
+      draggingId=null;
+      render();
+    };
+
+    const list=day.querySelector(".events");
+    events.filter(ev=>ev.date===dateKey).forEach(ev=>{
+      const item=document.createElement("div");
+      item.className="event"+(!editMode?" locked":"");
+      item.draggable=editMode;
+      item.style.background=ev.color;
+      item.textContent=`${ev.title} ${ev.start}-${ev.end}`;
+
+      item.onclick=(e)=>{
+        e.stopPropagation();
+        selected=new Date(date);
+        if(editMode) openEdit(ev.id);
+        renderDetail();
+      };
+
+      item.ondragstart=()=>{
+        if(!editMode) return;
+        draggingId=ev.id;
+      };
+
+      list.appendChild(item);
+    });
+
+    grid.appendChild(day);
+  }
+}
+
+function renderDetail(){
+  const dateKey=keyOf(selected);
+  const dayEvents=events.filter(ev=>ev.date===dateKey);
+  document.getElementById("selectedDateText").textContent=`${selected.getMonth()+1}월 ${selected.getDate()}일 (${dayNames[selected.getDay()]})`;
+  const box=document.getElementById("detailContent");
+
+  if(!dayEvents.length){
+    box.innerHTML=`<p class="empty-text">편집 모드에서만 추가할 수 있음</p>`;
+    return;
+  }
+
+  box.innerHTML=`<div class="detail-events"></div>`;
+  const wrap=box.querySelector(".detail-events");
+
+  dayEvents.forEach(ev=>{
+    const div=document.createElement("div");
+    div.className="detail-event";
+    div.style.borderLeftColor=ev.color;
+    div.innerHTML=`
+      ${ev.title}
+      <small>${ev.start} - ${ev.end}</small>
+      <div class="detail-actions">
+        <button onclick="openEdit('${ev.id}')">수정</button>
+        <button onclick="deleteEventById('${ev.id}')">삭제</button>
+      </div>
+    `;
+    wrap.appendChild(div);
+  });
+}
+
+function openPw(){
+  document.getElementById("pwInput").value="";
+  document.getElementById("pwError").style.display="none";
+  document.getElementById("pwOverlay").classList.add("open");
+}
+
+function closePw(){
+  document.getElementById("pwOverlay").classList.remove("open");
+}
+
+function submitPw(){
+  if(document.getElementById("pwInput").value===PASSWORD){
+    editMode=true;
+    document.getElementById("editBtn").classList.add("active");
+    document.getElementById("editBtn").textContent="편집중";
+    document.getElementById("addStaffBox").classList.add("show");
+    closePw();
+    render();
+  }else{
+    document.getElementById("pwError").style.display="block";
+  }
+}
+
+function closeEvent(){
+  document.getElementById("eventOverlay").classList.remove("open");
+  editingId=null;
+}
+
+function openAdd(dateKey){
+  if(!editMode) return;
+  editingId=null;
+  activeDateKey=dateKey;
+  document.getElementById("eventModalTitle").textContent="일정 추가";
+  document.getElementById("eventTitle").value="";
+  document.getElementById("startTime").value="09:00";
+  document.getElementById("endTime").value="17:00";
+  document.getElementById("eventColor").value=selectedColor;
+  document.getElementById("multiArea").style.display="block";
+  document.getElementById("multiToggle").checked=false;
+  document.getElementById("multiBox").classList.remove("show");
+  document.getElementById("dateList").innerHTML="";
+  document.getElementById("eventActions").innerHTML=`
+    <button onclick="closeEvent()">취소</button>
+    <button onclick="saveEvent()">저장</button>
+  `;
+  document.getElementById("eventOverlay").classList.add("open");
+}
+
+function openEdit(id){
+  if(!editMode) return;
+  const ev=events.find(e=>e.id===id);
+  if(!ev) return;
+  editingId=id;
+  activeDateKey=ev.date;
+  document.getElementById("eventModalTitle").textContent="일정 수정";
+  document.getElementById("eventTitle").value=ev.title;
+  document.getElementById("startTime").value=ev.start;
+  document.getElementById("endTime").value=ev.end;
+  document.getElementById("eventColor").value=ev.color;
+  document.getElementById("multiArea").style.display="none";
+  document.getElementById("eventActions").innerHTML=`
+    <button onclick="deleteEvent()">삭제</button>
+    <button onclick="closeEvent()">취소</button>
+    <button onclick="saveEvent()">저장</button>
+  `;
+  document.getElementById("eventOverlay").classList.add("open");
+}
+
+function saveEvent(){
+  if(!editMode) return;
+  const title=document.getElementById("eventTitle").value.trim();
+  const start=document.getElementById("startTime").value;
+  const end=document.getElementById("endTime").value;
+  const color=document.getElementById("eventColor").value;
+  if(!title) return;
+
+  if(editingId){
+    const ev=events.find(e=>e.id===editingId);
+    ev.title=title;
+    ev.start=start;
+    ev.end=end;
+    ev.color=color;
+  }else{
+    events.push({id:uid(),date:activeDateKey,title,start,end,color});
+    document.querySelectorAll(".extra-date").forEach(input=>{
+      if(!input.value) return;
+      events.push({id:uid(),date:input.value,title,start,end,color});
+    });
+  }
+
+  selectedColor=color;
+  document.getElementById("globalColor").value=color;
+  document.getElementById("colorText").textContent=color;
+  saveStore();
+  closeEvent();
+  render();
+}
+
+function deleteEvent(){
+  deleteEventById(editingId);
+  closeEvent();
+}
+
+function deleteEventById(id){
+  if(!editMode) return;
+  events=events.filter(ev=>ev.id!==id);
+  saveStore();
+  render();
+}
+
+function addDateInput(){
+  const row=document.createElement("div");
+  row.className="date-row";
+  row.innerHTML=`<input type="date" class="extra-date"><button onclick="this.parentElement.remove()">×</button>`;
+  document.getElementById("dateList").appendChild(row);
+}
+
+document.getElementById("editBtn").onclick=()=>{
+  if(editMode){
+    editMode=false;
+    document.getElementById("editBtn").classList.remove("active");
+    document.getElementById("editBtn").textContent="편집";
+    document.getElementById("addStaffBox").classList.remove("show");
+    render();
+  }else openPw();
+};
+
+document.getElementById("todayBtn").onclick=()=>{
+  const t=new Date();
+  current=new Date(t.getFullYear(),t.getMonth(),1);
+  selected=t;
+  render();
+};
+
+document.getElementById("prevBtn").onclick=()=>moveMonth(-1);
+document.getElementById("nextBtn").onclick=()=>moveMonth(1);
+
+document.getElementById("globalColor").oninput=e=>{
+  selectedColor=e.target.value;
+  document.getElementById("colorText").textContent=selectedColor;
+  document.getElementById("staffColorInput").value=selectedColor;
+};
+
+document.getElementById("multiToggle").onchange=e=>{
+  document.getElementById("multiBox").classList.toggle("show",e.target.checked);
+  if(e.target.checked && !document.querySelector(".extra-date")) addDateInput();
+};
+
+document.getElementById("mainCalendarCard").addEventListener("wheel", e=>{
+  const mostlyHorizontal = Math.abs(e.deltaX) > Math.abs(e.deltaY);
+  if(!mostlyHorizontal || wheelLock) return;
+
+  e.preventDefault();
+  wheelLock = true;
+
+  if(e.deltaX > 0) moveMonth(1);
+  else moveMonth(-1);
+
+  setTimeout(()=>wheelLock=false, 520);
+},{passive:false});
+
+document.addEventListener("keydown",e=>{if(e.altKey)altPressed=true});
+document.addEventListener("keyup",e=>{if(!e.altKey)altPressed=false});
+
+document.getElementById("pwInput").addEventListener("keydown",e=>{
+  if(e.key==="Enter")submitPw();
+});
+
+document.querySelectorAll(".overlay").forEach(overlay=>{
+  overlay.addEventListener("click",e=>{
+    if(e.target===overlay) overlay.classList.remove("open");
+  });
+});
+
+render();
+</script>
+</body>
+</html>
