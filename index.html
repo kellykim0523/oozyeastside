@@ -620,6 +620,204 @@ input:focus{
   .event{font-size:11px;padding:4px 6px}
   .month-title{font-size:34px}
 }
+
+/* iPad / tablet */
+@media (max-width:1200px){
+  .app{
+    grid-template-columns:1fr;
+    padding:16px;
+    gap:16px;
+  }
+
+  .side{
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    gap:16px;
+  }
+
+  .main-card,
+  .detail-card,
+  .panel{
+    padding:24px;
+  }
+
+  .calendar-head,
+  .detail-top{
+    height:86px;
+  }
+
+  .month-title{
+    font-size:42px;
+  }
+
+  .selected-date{
+    font-family:var(--ko);
+    font-size:38px;
+    font-weight:300;
+    letter-spacing:-.04em;
+  }
+
+  .day{
+    min-height:118px;
+  }
+}
+
+/* phone */
+@media (max-width:700px){
+  .hero{
+    height:24vh;
+    min-height:170px;
+  }
+
+  .marquee span{
+    font-size:clamp(54px,18vw,90px);
+  }
+
+  .app{
+    display:flex;
+    flex-direction:column;
+    padding:12px;
+    gap:12px;
+  }
+
+  .side{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+
+  .card{
+    border-radius:18px;
+  }
+
+  .main-card,
+  .detail-card,
+  .panel{
+    padding:18px;
+  }
+
+  .calendar-head,
+  .detail-top{
+    height:auto;
+    min-height:76px;
+    padding-bottom:16px;
+    margin-bottom:18px;
+  }
+
+  .calendar-head{
+    flex-direction:column;
+    gap:14px;
+  }
+
+  .nav{
+    width:100%;
+    display:grid;
+    grid-template-columns:1fr 44px 44px 1fr;
+    gap:8px;
+  }
+
+  .nav button,
+  .edit-btn{
+    height:42px;
+    min-width:0;
+    padding:0 10px;
+    font-size:13px;
+  }
+
+  .month-title{
+    font-size:36px;
+  }
+
+  .selected-date{
+    font-family:var(--ko);
+    font-size:32px;
+    font-weight:300;
+    letter-spacing:-.04em;
+    line-height:1;
+  }
+
+  .weekdays{
+    font-size:11px;
+    padding-bottom:8px;
+  }
+
+  .weekdays div{
+    padding-right:6px;
+  }
+
+  .calendar-grid{
+    gap:5px;
+  }
+
+  .day{
+    min-height:78px;
+    padding:7px;
+    border-radius:12px;
+  }
+
+  .day-number{
+    font-size:13px;
+    margin-bottom:5px;
+  }
+
+  .event{
+    font-size:10px;
+    padding:4px 6px;
+    max-width:100%;
+  }
+
+  .staff-chip{
+    font-size:14px;
+    padding:10px;
+  }
+
+  .staff-time{
+    font-size:11px;
+  }
+
+  .modal{
+    max-width:calc(100vw - 24px);
+    padding:22px;
+    border-radius:18px;
+  }
+
+  .modal-title{
+    font-size:26px;
+  }
+
+  .modal-actions{
+    flex-direction:column;
+  }
+
+  input{
+    height:42px;
+  }
+}
+
+/* very small phone */
+@media (max-width:430px){
+  .calendar-grid{
+    gap:4px;
+  }
+
+  .day{
+    min-height:68px;
+    padding:6px;
+  }
+
+  .event{
+    font-size:9px;
+    padding:3px 5px;
+  }
+
+  .month-title{
+    font-size:32px;
+  }
+
+  .selected-date{
+    font-size:28px;
+  }
+}
 </style>
 </head>
 
